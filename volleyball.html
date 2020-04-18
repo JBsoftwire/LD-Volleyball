@@ -48,11 +48,16 @@
     }
 
     function createPlayer() {
-        player = this.matter.add.sprite(100, 450, 'dude');
+        playerCont = this.add.container(100, 450)
+        playerBody = this.add.sprite(0, 0, 'dude');
+        playerCont.add(playerBody);
+
+        playerCont.setSize(27, 40)
+
+        player = this.matter.add.gameObject(playerCont);
 
         player.setBounce(0.2);
         player.setFixedRotation();
-        // player.setCollideWorldBounds(true);
 
         //  Our player animations, turning, walking left and walking right.
         this.anims.create({
@@ -77,7 +82,7 @@
     }
 
     function createBall() {
-        ball = this.matter.add.sprite(400, 400, 'bomb');
+        ball = this.matter.add.sprite(400, 200, 'bomb');
 
         ball.setBounce(0.9);
         ball.setVelocityX(Phaser.Math.Between(-10, 10));
@@ -85,23 +90,35 @@
         ball.setFrictionAir(0);
     }
 
+    function createSpinner() {
+        spinner = this.matter.add.sprite(400, 300, 'ground').setScale(0.5);
+        spinner.setIgnoreGravity(true);
+        spinner.setFixedRotation();
+    }
+
     function create ()
     {
         this.add.image(400, 300, 'sky');
         
-        this.matter.world.setBounds(0, 0, 800, 536, 1, true, true, false, true)
+        this.matter.world.setBounds(-10, -10, 810, 546, 20, true, true, true, true)
 
         ground = this.matter.add.image(400, 568, 'ground').setScale(2);
         ground.setStatic(true);
 
         createPlayer.call(this);
         createBall.call(this);
+        createSpinner.call(this);
 
         cursors = this.input.keyboard.createCursorKeys();
     }
 
     function update ()
     {
+        // spinner.setVelocity(0,0);
+        
+        spinner.setAngularVelocity(0.1);
+        spinner.setPosition(400, 300)
+
         if (gameOver)
         {
             return;
@@ -111,19 +128,19 @@
         {
             player.setVelocityX(-3);
 
-            player.anims.play('left', true);
+            playerBody.anims.play('left', true);
         }
         else if (cursors.right.isDown)
         {
             player.setVelocityX(3);
 
-            player.anims.play('right', true);
+            playerBody.anims.play('right', true);
         }
         else
         {
             player.setVelocityX(0);
 
-            player.anims.play('turn');
+            playerBody.anims.play('turn');
         }
 
         if (cursors.up.isDown)
@@ -131,6 +148,10 @@
             player.setVelocityY(-1);
         }
     }
+
+    // function catchBall() {
+
+    // }
 
     function dangerZone (ball)
     {
