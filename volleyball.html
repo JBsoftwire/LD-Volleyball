@@ -173,7 +173,7 @@
 
         ballController.ballSprite.setBounce(0.9);
         ballController.ballSprite.setVelocityX(Phaser.Math.Between(-10, 10));
-        ballController.ballSprite.setFrictionAir(0);
+        ballController.ballSprite.setFrictionAir(0.01);
 
         this.matter.world.on('beforeupdate', function (event) {
             ballController.launching = false;
@@ -203,7 +203,7 @@
     {
         this.add.image(400, 300, 'sky');
         
-        this.matter.world.setBounds(-10, -10, 810, 546, 20, true, true, true, true)
+        this.matter.world.setBounds(0, 0, 800, 600, 40, true, true, false, true)
 
         ground = this.matter.add.image(400, 568, 'ground').setScale(2);
         ground.setStatic(true);
