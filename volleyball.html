@@ -32,6 +32,7 @@
     };
 
     var ground;
+    var dangerZone;
     var playerController;
     var ballController;
     var cursors;
@@ -68,8 +69,9 @@
 
         var playerBody = M.Bodies.rectangle(0, 0, w * 0.75, h, { chamfer: { radius: 10 } });
         playerController.sensors.feet = M.Bodies.rectangle(0, h * 0.5, w * 0.5, 5, { isSensor: true });
-        var left = M.Bodies.rectangle(-w * 0.45, 0, 5, h * 0.25, { isSensor: true });
-        var right = M.Bodies.rectangle(w * 0.45, 0, 5, h * 0.25, { isSensor: true });
+
+        var left = M.Bodies.rectangle(-w * 0.45, 0, 5, h * 0.5, { isSensor: true });
+        var right = M.Bodies.rectangle(w * 0.45, 0, 5, h * 0.5, { isSensor: true });
         var top = M.Bodies.rectangle(0, -h * 0.5, w * 0.5, 5, { isSensor: true });
 
         playerController.sensors.hands = M.Body.create({
@@ -151,12 +153,13 @@
             launching: false,
             lastLaunchedAt: 0,
             lastTouchedGround: 0,
+            touchingGround: false,
         }
 
         var radius = ballController.ballSprite.width/2;
 
-        var ballBody = M.Bodies.circle(0, 0, radius);
-        ballController.ballSensor = M.Bodies.circle(0, 0, radius * 1.5)
+        var ballBody = M.Bodies.circle(0, 0, radius*0.75);
+        ballController.ballSensor = M.Bodies.circle(0, 0, radius * 1)
 
         var compoundBody = M.Body.create({
             parts: [
@@ -174,6 +177,19 @@
 
         this.matter.world.on('beforeupdate', function (event) {
             ballController.launching = false;
+            ballController.touchingGround = false;
+        });
+
+        this.matter.world.on('collisionactive', function (event) {
+            for (var i = 0; i < event.pairs.length; i++)
+            {
+                var bodyA = event.pairs[i].bodyA;
+                var bodyB = event.pairs[i].bodyB;
+                
+                if ((bodyA === dangerZone.body && bodyB === ballController.ballSensor) || (bodyA === ballController.ballSensor && bodyB === dangerZone.body)) {
+                    ballController.touchingGround = true;
+                }
+            }
         });
     }
 
@@ -192,6 +208,11 @@
         ground = this.matter.add.image(400, 568, 'ground').setScale(2);
         ground.setStatic(true);
 
+        dangerZone = this.matter.add.image(400, 560, 'ground').setScale(2);
+        dangerZone.setStatic(true);
+        dangerZone.setSensor(true);
+        dangerZone.setVisible(false);
+
         createPlayer.call(this);
         createBall.call(this);
         createSpinner.call(this);
@@ -202,10 +223,7 @@
     }
 
     function update(time)
-    {        
-        score = Math.floor((time - ballController.lastTouchedGround)/1000);
-        scoreText.setText('Airtime: ' + score);
-
+    {
         spinner.setAngularVelocity(0.1);
         spinner.setPosition(400, 300)
 
@@ -242,10 +260,15 @@
 
         var canLaunch = (time - ballController.lastLaunchedAt) > 250
         if (ballController.launching && canLaunch) {
-            console.log('ping');
             ballController.ballSprite.applyForce(new Phaser.Math.Vector2(0, -0.02));
             ballController.lastLaunchedAt = time;
         }
+
+        if (ballController.touchingGround) {
+            ballController.lastTouchedGround = time;
+        }
+        score = Math.floor((time - ballController.lastTouchedGround)/1000);
+        scoreText.setText('Airtime: ' + score);
     }
 </script>
 
