@@ -36,6 +36,8 @@
     var ballController;
     var cursors;
     var gameOver = false;
+    var score = 0;
+    var scoreText;
 
     var game = new Phaser.Game(config);
 
@@ -147,7 +149,8 @@
             ballSprite: this.matter.add.sprite(0, 0, 'bomb'),
             ballSensor: null,
             launching: false,
-            lastLaunchedAt: 0
+            lastLaunchedAt: 0,
+            lastTouchedGround: 0,
         }
 
         var radius = ballController.ballSprite.width/2;
@@ -180,7 +183,7 @@
         spinner.setFixedRotation();
     }
 
-    function create ()
+    function create()
     {
         this.add.image(400, 300, 'sky');
         
@@ -194,10 +197,15 @@
         createSpinner.call(this);
 
         cursors = this.input.keyboard.createCursorKeys();
+
+        scoreText = this.add.text(16, 16, 'airtime: 0', { fontSize: '32px', fill: '#000' });
     }
 
-    function update (time)
+    function update(time)
     {        
+        score = Math.floor((time - ballController.lastTouchedGround)/1000);
+        scoreText.setText('Airtime: ' + score);
+
         spinner.setAngularVelocity(0.1);
         spinner.setPosition(400, 300)
 
@@ -226,27 +234,19 @@
         }
 
         var canJump = (time - playerController.lastJumpedAt) > 250;
-        if (cursors.up.isDown && playerController.blocked.bottom)
+        if (cursors.up.isDown && playerController.blocked.bottom && canJump)
         {
             playerController.matterSprite.setVelocityY(-10);
             
         }
 
         var canLaunch = (time - ballController.lastLaunchedAt) > 250
-        if (ballController.launching) {
+        if (ballController.launching && canLaunch) {
             console.log('ping');
-            ballController.ballSprite.applyForce([0, 0.00001]);
+            ballController.ballSprite.applyForce(new Phaser.Math.Vector2(0, -0.02));
             ballController.lastLaunchedAt = time;
         }
     }
-
-    function dangerZone (ball)
-    {
-        this.physics.pause();
-
-        gameOver = true;
-    }
-
 </script>
 
 </body>
