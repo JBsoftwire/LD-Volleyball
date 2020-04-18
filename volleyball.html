@@ -32,8 +32,8 @@
     };
 
     var ground;
-    var player;
-    var ball;
+    var playerController;
+    var ballController;
     var cursors;
     var gameOver = false;
 
@@ -48,65 +48,45 @@
     }
 
     function createPlayer() {
-        // playerCont = this.add.container(100, 450)
-        // playerBody = this.add.sprite(0, 0, 'dude');
-        // playerCont.add(playerBody);
-
-        // playerCont.setSize(27, 40)
-
-        // player = this.matter.add.gameObject(playerCont);
-
         playerController = {
             matterSprite: this.matter.add.sprite(0, 0, 'dude'),
             blocked: {
-                left: false,
-                right: false,
                 bottom: false,
-                top: false,
-            },
-            numTouching: {
-                left: 0,
-                right: 0,
-                bottom: 0,
-                top: 0
             },
             sensors: {
-                top: null,
-                bottom: null,
-                left: null,
-                right: null
+                hands: null,
+                feet: null,
             },
             lastJumpedAt: 0
         }
-
-        // playerController.matterSprite.setBounce(0.2);
-        // playerController.matterSprite.setFixedRotation();
 
         var M = Phaser.Physics.Matter.Matter;
         var w = playerController.matterSprite.width;
         var h = playerController.matterSprite.height;
 
         var playerBody = M.Bodies.rectangle(0, 0, w * 0.75, h, { chamfer: { radius: 10 } });
-        playerController.sensors.bottom = M.Bodies.rectangle(0, h * 0.5, w * 0.5, 5, { isSensor: true });
-        playerController.sensors.left = M.Bodies.rectangle(-w * 0.45, 0, 5, h * 0.25, { isSensor: true });
-        playerController.sensors.right = M.Bodies.rectangle(w * 0.45, 0, 5, h * 0.25, { isSensor: true });
-        playerController.sensors.top = M.Bodies.rectangle(0, -h * 0.5, w * 0.5, 5, { isSensor: true });
+        playerController.sensors.feet = M.Bodies.rectangle(0, h * 0.5, w * 0.5, 5, { isSensor: true });
+        var left = M.Bodies.rectangle(-w * 0.45, 0, 5, h * 0.25, { isSensor: true });
+        var right = M.Bodies.rectangle(w * 0.45, 0, 5, h * 0.25, { isSensor: true });
+        var top = M.Bodies.rectangle(0, -h * 0.5, w * 0.5, 5, { isSensor: true });
 
-        // playerCont.add(playerController.sensors.top);
-        // playerCont.add(playerController.sensors.bottom);
-        // playerCont.add(playerController.sensors.left);
-        // playerCont.add(playerController.sensors.right);
+        playerController.sensors.hands = M.Body.create({
+            parts: [left, right, top],
+            isSensor: true
+        })
 
         var compoundBody = M.Body.create({
             parts: [
-                playerBody, playerController.sensors.top, playerController.sensors.bottom, playerController.sensors.left,
-                playerController.sensors.right
+                playerBody, playerController.sensors.hands, playerController.sensors.feet
             ],
             friction: 0.01,
             restitution: 0.05 // Prevent body from sticking against a wall
         });
 
-        playerController.matterSprite.setExistingBody(compoundBody).setFixedRotation().setPosition(100,450);
+        playerController.matterSprite
+            .setExistingBody(compoundBody)
+            .setFixedRotation()
+            .setPosition(100,450);
 
         //  Our player animations, turning, walking left and walking right.
         this.anims.create({
@@ -130,59 +110,68 @@
         });
 
         this.matter.world.on('beforeupdate', function (event) {
-            playerController.numTouching.left = 0;
-            playerController.numTouching.right = 0;
-            playerController.numTouching.bottom = 0;
+            playerController.blocked.bottom = 0;
         });
 
         this.matter.world.on('collisionactive', function (event)
         {
             var playerBody = playerController.body;
-            var left = playerController.sensors.left;
-            var right = playerController.sensors.right;
-            var bottom = playerController.sensors.bottom;
+            var hands = playerController.sensors.hands;
+            var feet = playerController.sensors.feet;
+
+            var ballSensor = ballController.ballSensor
 
             for (var i = 0; i < event.pairs.length; i++)
             {
                 var bodyA = event.pairs[i].bodyA;
                 var bodyB = event.pairs[i].bodyB;
 
-                if (bodyA === playerBody || bodyB === playerBody)
-                {
+                if (bodyA === playerBody || bodyB === playerBody) {
                     continue;
                 }
-                else if (bodyA === bottom || bodyB === bottom)
-                {
+                else if (bodyA === feet || bodyB === feet) {
                     // Standing on any surface counts (e.g. jumping off of a non-static crate).
-                    playerController.numTouching.bottom += 1;
+                    playerController.blocked.bottom = true;
                 }
-                else if ((bodyA === left && bodyB.isStatic) || (bodyB === left && bodyA.isStatic))
-                {
-                    // Only static objects count since we don't want to be blocked by an object that we
-                    // can push around.
-                    playerController.numTouching.left += 1;
-                }
-                else if ((bodyA === right && bodyB.isStatic) || (bodyB === right && bodyA.isStatic))
-                {
-                    playerController.numTouching.right += 1;
+                else if ((bodyA === hands && bodyB === ballSensor) || (bodyA === ballSensor && bodyB === hands)) {
+                    ballController.launching = true;
                 }
             }
-        });
-
-        this.matter.world.on('afterupdate', function (event) {
-            playerController.blocked.right = playerController.numTouching.right > 0 ? true : false;
-            playerController.blocked.left = playerController.numTouching.left > 0 ? true : false;
-            playerController.blocked.bottom = playerController.numTouching.bottom > 0 ? true : false;
         });
     }
 
     function createBall() {
-        ball = this.matter.add.sprite(400, 200, 'bomb');
+        var M = Phaser.Physics.Matter.Matter;
 
-        ball.setBounce(0.9);
-        ball.setVelocityX(Phaser.Math.Between(-10, 10));
-        ball.setFixedRotation();
-        ball.setFrictionAir(0);
+        ballController = {
+            ballSprite: this.matter.add.sprite(0, 0, 'bomb'),
+            ballSensor: null,
+            launching: false,
+            lastLaunchedAt: 0
+        }
+
+        var radius = ballController.ballSprite.width/2;
+
+        var ballBody = M.Bodies.circle(0, 0, radius);
+        ballController.ballSensor = M.Bodies.circle(0, 0, radius * 1.5)
+
+        var compoundBody = M.Body.create({
+            parts: [
+                ballBody, ballController.ballSensor
+            ],
+            friction: 0.01,
+            restitution: 0.05 // Prevent body from sticking against a wall
+        });
+
+        ballController.ballSprite.setExistingBody(compoundBody).setPosition(400, 200);
+
+        ballController.ballSprite.setBounce(0.9);
+        ballController.ballSprite.setVelocityX(Phaser.Math.Between(-10, 10));
+        ballController.ballSprite.setFrictionAir(0);
+
+        this.matter.world.on('beforeupdate', function (event) {
+            ballController.launching = false;
+        });
     }
 
     function createSpinner() {
@@ -240,14 +229,15 @@
         if (cursors.up.isDown && playerController.blocked.bottom)
         {
             playerController.matterSprite.setVelocityY(-10);
-            playerController.lastJumpedAt = time;
+            
         }
-    }
 
-    function catchBall() {
-        ball.destroy();
-        heldBall = this.add.sprite(0, -15, 'bomb');
-        playerCont.add(heldBall);
+        var canLaunch = (time - ballController.lastLaunchedAt) > 250
+        if (ballController.launching) {
+            console.log('ping');
+            ballController.ballSprite.applyForce([0, 0.00001]);
+            ballController.lastLaunchedAt = time;
+        }
     }
 
     function dangerZone (ball)
