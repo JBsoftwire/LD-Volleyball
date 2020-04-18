@@ -1,6 +1,6 @@
 <!doctype html>
-<html lang="en"> 
-<head> 
+<html lang="en">
+<head>
     <meta charset="UTF-8" />
     <title>Keep The Ball Up</title>
     <script src="//cdn.jsdelivr.net/npm/phaser@3.11.0/dist/phaser.js"></script>
@@ -11,7 +11,7 @@
     </style>
 </head>
 <body>
-    
+
 <script type="text/javascript">
 
     var config = {
@@ -21,6 +21,7 @@
         physics: {
             default: 'arcade',
             arcade: {
+                gravity: { y: 300 },
                 debug: false
             }
         },
@@ -31,6 +32,7 @@
         }
     };
 
+    var ground;
     var player;
     var ball;
     var cursors;
@@ -42,6 +44,7 @@
     {
         this.load.image('sky', 'assets/sky.png');
         this.load.image('ground', 'assets/platform.png');
+        this.load.image('dude', 'assets/dude.png');
         this.load.image('bomb', 'assets/bomb.png');
     }
 
@@ -49,18 +52,22 @@
     {
         this.add.image(400, 300, 'sky');
 
-        player = this.physics.add.sprite(400, 550, 'ground');
+        ground = this.physics.add.staticSprite(400, 568, 'ground').setScale(2).refreshBody();
+
+        player = this.physics.add.sprite(400, 400, 'dude');
         player.setCollideWorldBounds(true);
-        player.body.immovable = true;
+        // player.body.immovable = true;
 
         ball = this.physics.add.sprite(400, 50, 'bomb');
 
         ball.setBounce(1);
-        ball.setGravityY(1000)
+        ball.setGravityY(1000);
         ball.setCollideWorldBounds(true);
         ball.setVelocityX(Phaser.Math.Between(-300, 300));
 
         this.physics.add.collider(player, ball);
+        this.physics.add.collider(player, ground);
+        this.physics.add.collider(ball, ground);
 
         cursors = this.input.keyboard.createCursorKeys();
     }
