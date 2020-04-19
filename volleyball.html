@@ -35,10 +35,13 @@
     var dangerZone;
     var playerController;
     var ballController;
+    var tracker;
     var cursors;
     var gameOver = false;
     var score = 0;
     var scoreText;
+    var record = 0;
+    var recordText;
 
     var game = new Phaser.Game(config);
 
@@ -47,6 +50,7 @@
         this.load.image('sky', 'assets/sky.png');
         this.load.image('ground', 'assets/platform.png');
         this.load.image('bomb', 'assets/bomb.png');
+        this.load.image('tracker', 'assets/star.png');
         this.load.spritesheet('dude', 'assets/dude.png', { frameWidth: 32, frameHeight: 48 });
     }
 
@@ -68,11 +72,11 @@
         var h = playerController.matterSprite.height;
 
         var playerBody = M.Bodies.rectangle(0, 0, w * 0.75, h, { chamfer: { radius: 10 } });
-        playerController.sensors.feet = M.Bodies.rectangle(0, h * 0.5, w * 0.5, 5, { isSensor: true });
+        playerController.sensors.feet = M.Bodies.rectangle(0, h * 0.5, w * 0.1, 5, { isSensor: true });
 
         var left = M.Bodies.rectangle(-w * 0.45, 0, 5, h * 0.5, { isSensor: true });
         var right = M.Bodies.rectangle(w * 0.45, 0, 5, h * 0.5, { isSensor: true });
-        var top = M.Bodies.rectangle(0, -h * 0.5, w * 0.5, 5, { isSensor: true });
+        var top = M.Bodies.rectangle(0, -h * 0.5, w * 0.75, 5, { isSensor: true });
 
         playerController.sensors.hands = M.Body.create({
             parts: [left, right, top],
@@ -83,7 +87,7 @@
             parts: [
                 playerBody, playerController.sensors.hands, playerController.sensors.feet
             ],
-            friction: 0.01,
+            friction: 0,
             restitution: 0.05 // Prevent body from sticking against a wall
         });
 
@@ -169,11 +173,12 @@
             restitution: 0.05 // Prevent body from sticking against a wall
         });
 
-        ballController.ballSprite.setExistingBody(compoundBody).setPosition(400, 200);
+        ballController.ballSprite.setExistingBody(compoundBody)
 
         ballController.ballSprite.setBounce(0.9);
-        ballController.ballSprite.setVelocityX(Phaser.Math.Between(-10, 10));
         ballController.ballSprite.setFrictionAir(0.01);
+
+        resetBall();
 
         this.matter.world.on('beforeupdate', function (event) {
             ballController.launching = false;
@@ -193,6 +198,12 @@
         });
     }
 
+    function createTracker() {
+        tracker = this.matter.add.sprite(0, 0, 'tracker');
+        tracker.setSensor(true);
+        tracker.setStatic(true);
+    }
+
     function createSpinner() {
         spinner = this.matter.add.sprite(400, 300, 'ground').setScale(0.5);
         spinner.setIgnoreGravity(true);
@@ -202,8 +213,10 @@
     function create()
     {
         this.add.image(400, 300, 'sky');
+
+        const roomAboveScreen = 1800;
         
-        this.matter.world.setBounds(0, 0, 800, 600, 40, true, true, false, true)
+        this.matter.world.setBounds(0, -roomAboveScreen, 800, roomAboveScreen + 600)
 
         ground = this.matter.add.image(400, 568, 'ground').setScale(2);
         ground.setStatic(true);
@@ -216,16 +229,20 @@
         createPlayer.call(this);
         createBall.call(this);
         createSpinner.call(this);
+        createTracker.call(this);
 
         cursors = this.input.keyboard.createCursorKeys();
 
-        scoreText = this.add.text(16, 16, 'airtime: 0', { fontSize: '32px', fill: '#000' });
+        scoreText = this.add.text(16, 16, 'Airtime: 0', { fontSize: '32px', fill: '#000' });
+        recordText = this.add.text(16, 48, 'Record: 0', { fontSize: '32px', fill: '#000' });
     }
 
     function update(time)
     {
         spinner.setAngularVelocity(0.1);
         spinner.setPosition(400, 300)
+
+        tracker.setPosition(ballController.ballSprite.x, 10)
 
         if (gameOver)
         {
@@ -258,6 +275,11 @@
             
         }
 
+        if (cursors.down.isDown) {
+            ballController.lastTouchedGround = time;
+            resetBall();
+        }
+
         var canLaunch = (time - ballController.lastLaunchedAt) > 250
         if (ballController.launching && canLaunch) {
             ballController.ballSprite.applyForce(new Phaser.Math.Vector2(0, -0.02));
@@ -267,8 +289,21 @@
         if (ballController.touchingGround) {
             ballController.lastTouchedGround = time;
         }
+
+        updateScore(time);
+    }
+
+    function updateScore(time) {
         score = Math.floor((time - ballController.lastTouchedGround)/1000);
         scoreText.setText('Airtime: ' + score);
+        if (score > record) {
+            record = score;
+            recordText.setText('Record: ' + record);
+        }
+    }
+
+    function resetBall() {
+        ballController.ballSprite.setPosition(400, 500);//.setVelocityX(Phaser.Math.Between(-10, 10));
     }
 </script>
 
