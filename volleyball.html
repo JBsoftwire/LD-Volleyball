@@ -42,7 +42,6 @@
     var scoreText;
     var record = 0;
     var recordText;
-    var helpText;
 
     var game = new Phaser.Game(config);
 
@@ -234,9 +233,11 @@
 
         cursors = this.input.keyboard.createCursorKeys();
 
-        scoreText = this.add.text(16, 16, 'Airtime: 0', { fontSize: '32px', fill: '#000' });
-        recordText = this.add.text(16, 48, 'Record: 0', { fontSize: '32px', fill: '#000' });
-        helpText = this.add.text(16, 568, 'Arrow keys to move and jump. Press down to reset the ball.', { fontSize: '20px', fill: '#F77' })
+        scoreText = this.add.text(16, 16, 'Airtime: 0', { fontSize: '32px', color: '#000' });
+        recordText = this.add.text(16, 48, 'Record: 0', { fontSize: '32px', color: '#000' });
+        this.add.text(16, 80, 'Arrow keys to move and jump.', { fontSize: '16px', color: '#000' });
+        this.add.text(16, 96, 'Press down to reset the ball.', { fontSize: '16px', color: '#000' });
+        // this.add.text(16, 544, 'DANGER ZONE', { fontSize: '48px', color: '#F33', fontStyle: 'bold' });
     }
 
     function update(time)
@@ -305,6 +306,7 @@
     }
 
     function resetBall() {
+        ballController.ballSprite.setVelocity(0, 0);
         ballController.ballSprite.setPosition(400, 500);
     }
 </script>
