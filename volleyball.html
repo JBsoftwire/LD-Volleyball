@@ -42,6 +42,7 @@
     var scoreText;
     var record = 0;
     var recordText;
+    var helpText;
 
     var game = new Phaser.Game(config);
 
@@ -235,6 +236,7 @@
 
         scoreText = this.add.text(16, 16, 'Airtime: 0', { fontSize: '32px', fill: '#000' });
         recordText = this.add.text(16, 48, 'Record: 0', { fontSize: '32px', fill: '#000' });
+        helpText = this.add.text(16, 568, 'Arrow keys to move and jump. Press down to reset the ball.', { fontSize: '20px', fill: '#F77' })
     }
 
     function update(time)
@@ -251,13 +253,13 @@
 
         if (cursors.left.isDown && !playerController.blocked.left)
         {
-            playerController.matterSprite.setVelocityX(-5);
+            playerController.matterSprite.setVelocityX(-6);
 
             playerController.matterSprite.anims.play('left', true);
         }
         else if (cursors.right.isDown && !playerController.blocked.right)
         {
-            playerController.matterSprite.setVelocityX(5);
+            playerController.matterSprite.setVelocityX(6);
 
             playerController.matterSprite.anims.play('right', true);
         }
@@ -303,7 +305,7 @@
     }
 
     function resetBall() {
-        ballController.ballSprite.setPosition(400, 500);//.setVelocityX(Phaser.Math.Between(-10, 10));
+        ballController.ballSprite.setPosition(400, 500);
     }
 </script>
 
