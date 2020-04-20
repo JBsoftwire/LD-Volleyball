@@ -42,15 +42,13 @@
 
     var tracker;
     var cursors;
-    var gameOver = false;
-    var score = 0;
-    var scoreText;
+    var running = true;
+    var airtime = 0;
+    var airtimeText;
     var record = 0;
     var recordText;
 
-    var spaceKey;
-
-    var zKey;
+    var running = true;
 
     var game = new Phaser.Game(config);
 
@@ -59,7 +57,7 @@
         this.load.image('sky', 'assets/sky.png');
         this.load.image('ground', 'assets/ground.png');
         this.load.image('spinner', 'assets/spinner.png');
-        this.load.image('bomb', 'assets/bomb.png');
+        this.load.image('ball', 'assets/ball.png');
         this.load.image('tracker', 'assets/star.png');
         this.load.image('square', 'assets/square.png');
         this.load.spritesheet('dude', 'assets/dude.png', { frameWidth: 32, frameHeight: 48 });
@@ -107,7 +105,6 @@
             .setFixedRotation()
             .setPosition(100,450);
 
-        //  Our player animations, turning, walking left and walking right.
         this.anims.create({
             key: 'left',
             frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }),
@@ -149,7 +146,6 @@
                     continue;
                 }
                 else if (bodyA === feet || bodyB === feet) {
-                    // Standing on any surface counts (e.g. jumping off of a non-static crate).
                     playerController.blocked.bottom = true;
                 }
                 else if ((bodyA === hands && bodyB === ballSensor) || (bodyA === ballSensor && bodyB === hands)) {
@@ -163,7 +159,7 @@
         var M = Phaser.Physics.Matter.Matter;
 
         ballController = {
-            ballSprite: this.matter.add.sprite(0, 0, 'bomb'),
+            ballSprite: this.matter.add.sprite(0, 0, 'ball'),
             ballSensor: null,
             launching: false,
             lastLaunchedAt: 0,
@@ -181,7 +177,7 @@
                 ballBody, ballController.ballSensor
             ],
             friction: 0.01,
-            restitution: 0.05 // Prevent body from sticking against a wall
+            restitution: 0.05
         });
 
         ballController.ballSprite.setExistingBody(compoundBody)
@@ -230,8 +226,6 @@
     }
 
     function createPendulum() {
-        var M = Phaser.Physics.Matter.Matter;
-
         var pivot = this.matter.add.image(400, 100, 'square').setStatic(true).setSensor(true).setVisible(false);
         var weight = this.matter.add.sprite(600, 100, 'square').setScale(10).setFrictionAir(0).setMass(0.2);
 
@@ -270,6 +264,7 @@
         spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         zKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
         xKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
+        pKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.P);
 
         zKey.on('down', function(key, event) {
             spinners.forEach((spinner) => {
@@ -285,13 +280,25 @@
             })
         });
 
-        scoreText = this.add.text(16, 16, 'Airtime: 0', { fontSize: '32px', color: '#000' });
+        // this bit is monstrous but I frankly don't care at this point
+        var matter = this.matter;
+        pKey.on('down', function(key, event) {
+            if (running) {
+                matter.pause();
+                running = false;
+            } else {
+                matter.resume();
+                running = true;
+            }
+        });
+
+        airtimeText = this.add.text(16, 16, 'Airtime: 0', { fontSize: '32px', color: '#000' });
         recordText = this.add.text(16, 48, 'Record: 0', { fontSize: '32px', color: '#000' });
         this.add.text(16, 80, 'Arrow keys to move and jump', { fontSize: '16px', color: '#000' });
         this.add.text(16, 96, 'Press space to reset the ball', { fontSize: '16px', color: '#000' });
         this.add.text(16, 112, 'Press Z to toggle spinners', { fontSize: '16px', color: '#000' });
         this.add.text(16, 128, 'Press X to toggle pendulum', { fontSize: '16px', color: '#000' });
-        // this.add.text(16, 544, 'DANGER ZONE', { fontSize: '48px', color: '#F33', fontStyle: 'bold' });
+        this.add.text(16, 144, 'Press P to pause', { fontSize: '16px', color: '#000' });
 
         // this.matter.world.createDebugGraphic();
         // this.matter.world.drawDebug = true;
@@ -299,42 +306,24 @@
 
     function update(time)
     {
-        // spinner.setPosition(400, 100)
-
-        // image.rotation += 0.01;
-
         tracker.setPosition(ballController.ballSprite.x, 590)
-
-        if (gameOver)
-        {
-            return;
-        }
 
         playerController.matterSprite.setFriction(0)
         if (cursors.left.isDown)
         {
             playerController.matterSprite.setVelocityX(-6);
-            // playerController.matterSprite.applyForce(new Phaser.Math.Vector2(-0.002, 0));
-
-            // console.log(playerController.matterSprite);
-
-            // var speed = playerController.matterSprite.
-            // playerController.matterSprite.setVelocity(Math.max(-6))
 
             playerController.matterSprite.anims.play('left', true);
         }
         else if (cursors.right.isDown)
         {
             playerController.matterSprite.setVelocityX(6);
-            // playerController.matterSprite.applyForce(new Phaser.Math.Vector2(0.002, 0));
 
             playerController.matterSprite.anims.play('right', true);
         }
-        else// if (playerController.blocked.bottom)
+        else
         {
             playerController.matterSprite.setVelocityX(0);
-            // playerController.matterSprite.setFriction(0.2)
-
             playerController.matterSprite.anims.play('turn');
         }
 
@@ -364,10 +353,10 @@
     }
 
     function updateScore(time) {
-        score = Math.floor((time - ballController.lastTouchedGround)/1000);
-        scoreText.setText('Airtime: ' + score);
-        if (score > record) {
-            record = score;
+        airtime = Math.floor((time - ballController.lastTouchedGround)/1000);
+        airtimeText.setText('Airtime: ' + airtime);
+        if (airtime > record) {
+            record = airtime;
             recordText.setText('Record: ' + record);
         }
     }
