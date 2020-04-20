@@ -272,16 +272,16 @@
         xKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
 
         zKey.on('down', function(key, event) {
-            spinners.forEach((gimmick) => {
-                spinners.setSensor(!gimmick.isSensor());
-                spinners.setVisible(!gimmick.visible);
+            spinners.forEach((spinner) => {
+                spinner.setSensor(!spinner.isSensor());
+                spinner.setVisible(!spinner.visible);
             })
         });
 
         xKey.on('down', function(key, event) {
-            pendulums.forEach((gimmick) => {
-                pendulums.setSensor(!gimmick.isSensor());
-                pendulums.setVisible(!gimmick.visible);
+            pendulums.forEach((pendulum) => {
+                pendulum.setSensor(!pendulum.isSensor());
+                pendulum.setVisible(!pendulum.visible);
             })
         });
 
