@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <title>Keep The Ball Up</title>
+    <title>Keep The Ball Alive</title>
     <script src="//cdn.jsdelivr.net/npm/phaser@3.21.0/dist/phaser.js"></script>
     <style type="text/css">
         body {
@@ -36,12 +36,9 @@
 
     var playerController;
     var ballController;
-
-    var spinner;
-    var spinner2;
-    var spinner3;
-    var pivot;
-    // var image;
+    
+    var spinners = [];
+    var pendulums = [];
 
     var tracker;
     var cursors;
@@ -50,7 +47,6 @@
     var scoreText;
     var record = 0;
     var recordText;
-    var gimmicks = [];
 
     var spaceKey;
 
@@ -223,24 +219,24 @@
     function createSpinner(x, y, r) {
         var pivot = this.matter.add.image(x, y, 'square').setStatic(true).setSensor(true).setVisible(false);
 
-        spinner = this.matter.add.sprite(x, y, 'spinner').setScale(0.5);
+        var spinner = this.matter.add.sprite(x, y, 'spinner').setScale(0.5);
         spinner.setIgnoreGravity(true);
         spinner.setFrictionAir(0);
         spinner.setAngularVelocity(r);
         spinner.setFixedRotation();
 
         this.matter.add.joint(pivot, spinner, 0, 0.99);
-        // gimmicks.push(pivot);
-        // gimmicks.push(spinner);
+        spinners.push(spinner);
     }
 
     function createPendulum() {
         var M = Phaser.Physics.Matter.Matter;
 
-        pivot = this.matter.add.image(400, 100, 'square').setStatic(true).setSensor(true).setVisible(false);
+        var pivot = this.matter.add.image(400, 100, 'square').setStatic(true).setSensor(true).setVisible(false);
         var weight = this.matter.add.sprite(600, 100, 'square').setScale(10).setFrictionAir(0).setMass(0.2);
 
         this.matter.add.joint(pivot, weight, 200, 0.95);
+        pendulums.push(weight);
     }
 
     function create()
@@ -263,8 +259,8 @@
         createBall.call(this);
 
         createSpinner.call(this, 400, 100, 0.01);
-        createSpinner.call(this, 100, 350, -0.01);
-        createSpinner.call(this, 700, 350, 0.01);
+        createSpinner.call(this, 100, 350, 0.01);
+        createSpinner.call(this, 700, 350, -0.01);
         createPendulum.call(this);
 
         createTracker.call(this);
@@ -273,17 +269,28 @@
 
         spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         zKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
+        xKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
 
-        // zKey.on('down', function(key, event) {
-        //     spinner.setSensor(!spinner.isSensor());
-        //     spinner.setVisible(!spinner.visible);
-        // });
+        zKey.on('down', function(key, event) {
+            spinners.forEach((gimmick) => {
+                spinners.setSensor(!gimmick.isSensor());
+                spinners.setVisible(!gimmick.visible);
+            })
+        });
+
+        xKey.on('down', function(key, event) {
+            pendulums.forEach((gimmick) => {
+                pendulums.setSensor(!gimmick.isSensor());
+                pendulums.setVisible(!gimmick.visible);
+            })
+        });
 
         scoreText = this.add.text(16, 16, 'Airtime: 0', { fontSize: '32px', color: '#000' });
         recordText = this.add.text(16, 48, 'Record: 0', { fontSize: '32px', color: '#000' });
         this.add.text(16, 80, 'Arrow keys to move and jump', { fontSize: '16px', color: '#000' });
         this.add.text(16, 96, 'Press space to reset the ball', { fontSize: '16px', color: '#000' });
-        // this.add.text(16, 112, 'Press Z to toggle obstacles', { fontSize: '16px', color: '#000' });
+        this.add.text(16, 112, 'Press Z to toggle spinners', { fontSize: '16px', color: '#000' });
+        this.add.text(16, 112, 'Press X to toggle pendulum', { fontSize: '16px', color: '#000' });
         // this.add.text(16, 544, 'DANGER ZONE', { fontSize: '48px', color: '#F33', fontStyle: 'bold' });
 
         // this.matter.world.createDebugGraphic();
